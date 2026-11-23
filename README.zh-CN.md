@@ -36,20 +36,29 @@
 
 ## 从源码构建
 
+需要 **JDK 17**（AGP 8.2 强制要求），以及包含 `platforms;android-34`、`build-tools;34.0.0` 的 Android SDK。
+
+macOS / Linux（`$ANDROID_HOME` 本身是正斜杠路径）：
+
 ```bash
 git clone https://github.com/ctyfrank/reelsplayer.git
 cd reelsplayer
-echo "sdk.dir=$ANDROID_HOME" > local.properties
+printf 'sdk.dir=%s\n' "$ANDROID_HOME" > local.properties
 ./gradlew assembleDebug
 ```
 
-Windows 下把最后两步换成（`local.properties` 中写你的 SDK 路径，例如 `sdk.dir=E\:\\Android\\Sdk`）：
+已经导出 `ANDROID_HOME` 时可以省掉 `local.properties`，Gradle 会回退到该环境变量。
 
-```bat
-gradlew.bat assembleDebug
+Windows（PowerShell）—— `.properties` 里 `\` 是**转义符**，`sdk.dir=E:\Android\Sdk` 会被读成 `E:AndroidSdk`，所以务必用正斜杠：
+
+```powershell
+git clone https://github.com/ctyfrank/reelsplayer.git
+cd reelsplayer
+Set-Content local.properties "sdk.dir=E:/Android/Sdk"
+.\gradlew.bat assembleDebug
 ```
 
-生成的 APK 位于 `app/build/outputs/apk/debug/app-debug.apk`
+生成的 APK 位于 `app/build/outputs/apk/debug/app-debug.apk`。直接用 Android Studio 打开工程也可以，它自带 JDK 17。
 
 技术栈：Kotlin + AndroidX ViewPager2 + Media3 ExoPlayer 1.2.0，compileSdk 34、minSdk 26、targetSdk 34，JDK 17。
 

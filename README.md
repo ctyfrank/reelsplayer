@@ -32,14 +32,29 @@ Grab the latest APK from [Releases](../../releases).
 
 ## Building from source
 
+Requires **JDK 17** (AGP 8.2 enforces it) and an Android SDK with `platforms;android-34` and `build-tools;34.0.0`.
+
+macOS / Linux (`$ANDROID_HOME` already uses forward slashes):
+
 ```bash
-git clone https://github.com/underwear/reelsplayer.git
+git clone https://github.com/ctyfrank/reelsplayer.git
 cd reelsplayer
-echo "sdk.dir=$ANDROID_HOME" > local.properties
+printf 'sdk.dir=%s\n' "$ANDROID_HOME" > local.properties
 ./gradlew assembleDebug
 ```
 
-APK will be at `app/build/outputs/apk/debug/app-debug.apk`
+If `ANDROID_HOME` is exported you can skip `local.properties` — Gradle falls back to the env var.
+
+Windows — `\` is an **escape character** inside `.properties`, so `sdk.dir=E:\Android\Sdk` would be read as `E:AndroidSdk`. Use forward slashes:
+
+```powershell
+git clone https://github.com/ctyfrank/reelsplayer.git
+cd reelsplayer
+Set-Content local.properties "sdk.dir=E:/Android/Sdk"
+.\gradlew.bat assembleDebug
+```
+
+APK will be at `app/build/outputs/apk/debug/app-debug.apk`. Opening the folder in Android Studio works too — it ships its own JDK 17.
 
 ## License
 
