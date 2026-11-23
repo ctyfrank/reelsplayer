@@ -3,10 +3,13 @@ package com.reelsplayer
 import android.content.Intent
 import android.net.Uri
 import android.os.Bundle
+import android.os.Handler
+import android.os.Looper
 import android.view.View
 import android.widget.Button
 import android.widget.LinearLayout
 import android.widget.TextView
+import android.widget.Toast
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.appcompat.app.AppCompatActivity
 import androidx.documentfile.provider.DocumentFile
@@ -15,12 +18,21 @@ import androidx.viewpager2.widget.ViewPager2
 class MainActivity : AppCompatActivity() {
 
     private lateinit var landing: LinearLayout
+    private lateinit var landingSubtitle: TextView
+    private lateinit var pickBtn: Button
     private lateinit var viewPager: ViewPager2
     private lateinit var hud: LinearLayout
     private lateinit var hudName: TextView
     private lateinit var hudCounter: TextView
 
+    /** Relative path inside the picked folder (e.g. "sub/clip.mp4") mapped to its content URI. */
     private var videoFiles = mutableListOf<Pair<String, Uri>>()
+
+    private val mainHandler = Handler(Looper.getMainLooper())
+
+    /** Bumped on every folder pick so that a scan started earlier can stop early. */
+    @Volatile
+    private var scanToken = 0
 
     private val folderPicker = registerForActivityResult(
         ActivityResultContracts.OpenDocumentTree()
@@ -33,12 +45,14 @@ class MainActivity : AppCompatActivity() {
         setContentView(R.layout.activity_main)
 
         landing = findViewById(R.id.landing)
+        landingSubtitle = findViewById(R.id.landingSubtitle)
+        pickBtn = findViewById(R.id.pickBtn)
         viewPager = findViewById(R.id.viewPager)
         hud = findViewById(R.id.hud)
         hudName = findViewById(R.id.hudName)
         hudCounter = findViewById(R.id.hudCounter)
 
-        findViewById<Button>(R.id.pickBtn).setOnClickListener {
+        pickBtn.setOnClickListener {
             folderPicker.launch(null)
         }
 
@@ -65,26 +79,105 @@ class MainActivity : AppCompatActivity() {
         }
 
         val tree = DocumentFile.fromTreeUri(this, treeUri) ?: return
-        val newFiles = mutableListOf<Pair<String, Uri>>()
+        val token = ++scanToken
+        showScanning()
 
-        tree.listFiles()
-            .filter { it.isFile && it.type?.startsWith("video/") == true }
-            .sortedBy { it.name ?: "" }
-            .forEach { file ->
-                newFiles.add(Pair(file.name ?: "Unknown", file.uri))
+        // Walking the whole tree means many content-resolver round trips, so keep it off the UI thread.
+        Thread {
+            val found = ArrayList<Pair<String, Uri>>()
+            collectVideos(
+                dir = tree,
+                pathPrefix = "",
+                visited = HashSet(),
+                out = found,
+                isStale = { scanToken != token },
+                onFound = { count ->
+                    if (count % PROGRESS_UPDATE_EVERY == 0) {
+                        mainHandler.post {
+                            if (scanToken == token) {
+                                landingSubtitle.text = getString(R.string.scanning_format, count)
+                            }
+                        }
+                    }
+                }
+            )
+
+            // Sorting by relative path keeps the videos of each subfolder grouped in swipe order.
+            found.sortWith { a, b -> a.first.compareTo(b.first, ignoreCase = true) }
+
+            mainHandler.post {
+                if (scanToken != token) return@post
+                pickBtn.isEnabled = true
+                landingSubtitle.setText(R.string.landing_subtitle)
+
+                if (found.isEmpty()) {
+                    Toast.makeText(this, R.string.no_videos, Toast.LENGTH_SHORT).show()
+                    return@post
+                }
+
+                videoFiles = found
+                landing.visibility = View.GONE
+                viewPager.visibility = View.VISIBLE
+                hud.visibility = View.VISIBLE
+
+                val adapter = VideoAdapter(videoFiles)
+                viewPager.adapter = adapter
+                viewPager.post { adapter.onPageSelected(0) }
+                updateHud(0)
+            }
+        }.start()
+    }
+
+    /**
+     * Depth-first walk of [dir], appending every video below it to [out].
+     *
+     * @param pathPrefix path of [dir] relative to the picked folder, with a trailing slash.
+     */
+    private fun collectVideos(
+        dir: DocumentFile,
+        pathPrefix: String,
+        visited: MutableSet<String>,
+        out: MutableList<Pair<String, Uri>>,
+        isStale: () -> Boolean,
+        onFound: (Int) -> Unit
+    ) {
+        if (isStale()) return
+        // Guards against providers that report a document as its own descendant.
+        if (!visited.add(dir.uri.toString())) return
+
+        val children = try {
+            dir.listFiles()
+        } catch (_: Exception) {
+            emptyArray<DocumentFile>()
+        }
+
+        for (child in children) {
+            if (isStale()) return
+            val name = child.name ?: continue
+
+            if (child.isDirectory) {
+                collectVideos(child, "$pathPrefix$name/", visited, out, isStale, onFound)
+                continue
             }
 
-        if (newFiles.isEmpty()) return
-        videoFiles = newFiles
+            val type = try {
+                child.type
+            } catch (_: Exception) {
+                null
+            }
+            if (type?.startsWith("video/") == true) {
+                out.add(Pair("$pathPrefix$name", child.uri))
+                onFound(out.size)
+            }
+        }
+    }
 
-        landing.visibility = View.GONE
-        viewPager.visibility = View.VISIBLE
-        hud.visibility = View.VISIBLE
-
-        val adapter = VideoAdapter(videoFiles)
-        viewPager.adapter = adapter
-        viewPager.post { adapter.onPageSelected(0) }
-        updateHud(0)
+    private fun showScanning() {
+        landing.visibility = View.VISIBLE
+        viewPager.visibility = View.GONE
+        hud.visibility = View.GONE
+        pickBtn.isEnabled = false
+        landingSubtitle.text = getString(R.string.scanning_format, 0)
     }
 
     private fun updateHud(position: Int) {
@@ -105,6 +198,13 @@ class MainActivity : AppCompatActivity() {
 
     override fun onDestroy() {
         super.onDestroy()
+        // Stop a scan that is still running so its results are dropped.
+        scanToken++
         (viewPager.adapter as? VideoAdapter)?.releaseAll()
+    }
+
+    private companion object {
+        /** How many videos to find between two "Scanning…" updates. */
+        const val PROGRESS_UPDATE_EVERY = 25
     }
 }

@@ -5,4 +5,6 @@
     <string name="pick_folder">Pick folder</string>
     <string name="speed_label">2x</string>
     <string name="counter_format">%1$d / %2$d</string>
+    <string name="scanning_format">Scanning… %1$d videos found</string>
+    <string name="no_videos">No videos found in this folder</string>
 </resources>
