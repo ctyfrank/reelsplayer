@@ -1,0 +1,72 @@
+# ReelsPlayer
+
+[English](README.md) | 简体中文
+
+一款离线 Android 视频播放器，用来刷你已经下载到本地的 Reels、Shorts 和 TikTok 视频 —— 竖向滑动，就像还停留在信息流里一样。
+
+选一个文件夹，立刻进入全屏竖向滑动的播放体验。
+
+<p float="left">
+  <img src="demo/landing.jpg" width="250" />
+  <img src="demo/player.jpg" width="250" />
+</p>
+
+## 功能
+
+- **选择文件夹** —— 递归扫描该文件夹及其所有子文件夹，播放找到的全部视频
+- **扫描进度** —— 大目录扫描时显示「已找到 N 个视频」
+- **竖向滑动** —— 交互与 Reels / Shorts / TikTok 一致
+- **点击暂停 / 播放**
+- **长按右侧 → 2 倍速** —— 按住右侧约三分之一的区域 0.3 秒后生效，松手立刻恢复 1 倍速
+- **单个视频循环播放**
+- **全程离线** —— 不联网、不上传任何内容
+- **多语言界面** —— 中文、英文、俄语，跟随系统语言
+
+界面上的细节：顶部显示当前视频相对路径与「当前 / 总数」，屏幕底部有一条细进度条。
+
+## 下载
+
+从 [Releases](../../releases) 获取最新 APK。
+
+## 环境要求
+
+- Android 8.0 及以上（API 26）
+- 视频格式取决于 ExoPlayer 的支持范围（常见如 MP4/H.264、WebM、MKV 等）
+- 递归遍历所有子文件夹；播放顺序按相对路径排序，同一目录的视频相邻
+
+## 从源码构建
+
+```bash
+git clone https://github.com/ctyfrank/reelsplayer.git
+cd reelsplayer
+echo "sdk.dir=$ANDROID_HOME" > local.properties
+./gradlew assembleDebug
+```
+
+Windows 下把最后两步换成（`local.properties` 中写你的 SDK 路径，例如 `sdk.dir=E\:\\Android\\Sdk`）：
+
+```bat
+gradlew.bat assembleDebug
+```
+
+生成的 APK 位于 `app/build/outputs/apk/debug/app-debug.apk`
+
+技术栈：Kotlin + AndroidX ViewPager2 + Media3 ExoPlayer 1.2.0，compileSdk 34、minSdk 26、targetSdk 34，JDK 17。
+
+## 签名发布版
+
+在仓库根目录放入 `reelsplayer-release.jks`，并设置环境变量 `KEYSTORE_PASSWORD`、`KEY_ALIAS`、`KEY_PASSWORD`，然后执行：
+
+```bash
+./gradlew assembleRelease
+```
+
+未放签名文件时，release 构建不会签名。
+
+## 持续集成
+
+推送到 `main` 分支或打 `v*` 标签会触发 GitHub Actions：构建 debug 与 release APK 并作为 artifact 上传，打标签时自动创建 GitHub Release。相关配置见 [.github/workflows/build.yml](.github/workflows/build.yml)。
+
+## 开源协议
+
+MIT

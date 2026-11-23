@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="landing_subtitle">选择一个存放视频的文件夹</string>
+    <string name="pick_folder">选择文件夹</string>
+    <string name="scanning_format">扫描中… 已找到 %1$d 个视频</string>
+    <string name="no_videos">该文件夹里没有找到视频</string>
+</resources>

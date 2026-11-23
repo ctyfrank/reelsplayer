@@ -1,5 +1,7 @@
 # ReelsPlayer
 
+English | [简体中文](README.zh-CN.md)
+
 Offline Android video player for your downloaded Reels, Shorts, and TikToks — swipe through them like you're still on the feed.
 
 Pick a folder, get the full-screen vertical swipe experience.
@@ -11,11 +13,13 @@ Pick a folder, get the full-screen vertical swipe experience.
 
 ## Features
 
-- **Pick a folder** — plays all videos inside
+- **Pick a folder** — recursively plays every video in it and its subfolders
+- **Scan progress** — shows how many videos were found while scanning
 - **Vertical swipe** — exactly like Reels/Shorts/TikTok
 - **Tap to pause/play**
 - **Long press right side → 2x speed**
 - **Fully offline**
+- **Localized UI** — Chinese, English, Russian; follows the system language
 
 ## Download
 
@@ -24,6 +28,7 @@ Grab the latest APK from [Releases](../../releases).
 ## Requirements
 
 - Android 8.0+ (API 26)
+- Scans every subfolder; swipe order follows the relative path, so videos from the same folder stay together
 
 ## Building from source
 
